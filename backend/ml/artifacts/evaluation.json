@@ -1,0 +1,127 @@
+{
+  "dataset_sha256": "3c1dafa5d7800479ff5d0c0fb4369a305e7edc7a9f775de0a1591574306c1619",
+  "data_provenance": {
+    "evaluation_dataset_sha256": "3c1dafa5d7800479ff5d0c0fb4369a305e7edc7a9f775de0a1591574306c1619",
+    "model_training_dataset_sha256": "874aea73d6fb9e35ed48846991e652cdedfc4c3dcbd839a7ba9770f61391c8ba",
+    "training_data_hash_matches_evaluation": false
+  },
+  "test_rows": 3186,
+  "test_fraud": 139,
+  "base_rate": 0.0436,
+  "scoring_version": "scoring-4",
+  "rules_version": "rules-15",
+  "levels": {
+    "medium_or_high (>=35)": {
+      "precision": 0.984,
+      "precision_ci95": [
+        0.945,
+        0.996
+      ],
+      "recall": 0.914,
+      "recall_ci95": [
+        0.855,
+        0.95
+      ],
+      "flagged": 129,
+      "true_positives": 127,
+      "false_positives": 2,
+      "missed": 12
+    },
+    "high (>=60)": {
+      "precision": 1.0,
+      "precision_ci95": [
+        0.51,
+        1.0
+      ],
+      "recall": 0.029,
+      "recall_ci95": [
+        0.011,
+        0.072
+      ],
+      "flagged": 4,
+      "true_positives": 4,
+      "false_positives": 0,
+      "missed": 135
+    }
+  },
+  "ablation_at_medium_35": {
+    "rules_only": {
+      "precision": 0.75,
+      "precision_ci95": [
+        0.301,
+        0.954
+      ],
+      "recall": 0.022,
+      "recall_ci95": [
+        0.007,
+        0.062
+      ],
+      "flagged": 4,
+      "true_positives": 3,
+      "false_positives": 1,
+      "missed": 136
+    },
+    "model_only": {
+      "precision": 0.992,
+      "precision_ci95": [
+        0.957,
+        0.999
+      ],
+      "recall": 0.914,
+      "recall_ci95": [
+        0.855,
+        0.95
+      ],
+      "flagged": 128,
+      "true_positives": 127,
+      "false_positives": 1,
+      "missed": 12
+    },
+    "combined": {
+      "precision": 0.984,
+      "precision_ci95": [
+        0.945,
+        0.996
+      ],
+      "recall": 0.914,
+      "recall_ci95": [
+        0.855,
+        0.95
+      ],
+      "flagged": 129,
+      "true_positives": 127,
+      "false_positives": 2,
+      "missed": 12
+    }
+  },
+  "rule_hit_rate": {
+    "fraud": 0.036,
+    "genuine": 0.0105
+  },
+  "synthetic_india_smoke": {
+    "note": "SYNTHETIC templated text; out-of-domain smoke test only",
+    "rows": 100,
+    "medium_or_high": {
+      "precision": 1.0,
+      "precision_ci95": [
+        0.929,
+        1.0
+      ],
+      "recall": 1.0,
+      "recall_ci95": [
+        0.929,
+        1.0
+      ],
+      "flagged": 50,
+      "true_positives": 50,
+      "false_positives": 0,
+      "missed": 0
+    }
+  },
+  "caveats": [
+    "EMSCAD is mostly US/UK English postings with ~4% fraud.",
+    "No company/contact/salary evidence in most EMSCAD rows, so only text stages are exercised.",
+    "Real-world precision depends on the prevalence of scams among postings users submit, which is not 4%.",
+    "Model training-data hash differs from this evaluation dataset; independence from training data is not verified."
+  ]
+}

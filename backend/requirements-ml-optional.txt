@@ -1,0 +1,3 @@
+# Only needed for the optional DistilBERT path (weights are NOT included in this repo).
+torch
+transformers

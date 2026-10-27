@@ -1,0 +1,31 @@
+# Python environments and generated files
+.venv/
+venv/
+ENV/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage*
+htmlcov/
+
+# Local secrets (keep example templates)
+.env
+.env.*
+!.env.example
+
+# Local databases and logs
+*.db
+*.sqlite
+*.sqlite3
+*.log
+
+# Node and frontend build output
+node_modules/
+frontend/dist/
+dist/
+
+# Temporary test output
+backend/.pytest-basetemp-codex/

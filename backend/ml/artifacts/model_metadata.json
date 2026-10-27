@@ -1,0 +1,72 @@
+{
+  "trained_at": "2026-10-21T19:03:25+00:00",
+  "sklearn_version": "1.8.0",
+  "dataset": {
+    "name": "EMSCAD (fake_job_postings.csv)",
+    "sha256": "874aea73d6fb9e35ed48846991e652cdedfc4c3dcbd839a7ba9770f61391c8ba",
+    "rows_after_dedupe": 15584,
+    "fraud_rows": 667,
+    "train": 9350,
+    "validation": 3117,
+    "test": 3117,
+    "seed": 42
+  },
+  "hyperparameters": {
+    "C": 30,
+    "validation_pr_auc_by_C": {
+      "1": 0.8737,
+      "4": 0.8827,
+      "10": 0.8892,
+      "30": 0.8915
+    },
+    "tfidf": "word 1-2grams, 50k features, min_df=3, sublinear_tf"
+  },
+  "test_metrics": {
+    "base_rate": 0.0427,
+    "roc_auc": 0.9755,
+    "pr_auc": 0.8556,
+    "thresholds": [
+      {
+        "threshold": 0.5,
+        "precision": 0.902,
+        "recall": 0.759,
+        "f1": 0.824,
+        "flagged": 112,
+        "of": 3117
+      },
+      {
+        "threshold": 0.7,
+        "precision": 0.939,
+        "recall": 0.699,
+        "f1": 0.802,
+        "flagged": 99,
+        "of": 3117
+      },
+      {
+        "threshold": 0.8,
+        "precision": 0.948,
+        "recall": 0.684,
+        "f1": 0.795,
+        "flagged": 96,
+        "of": 3117
+      },
+      {
+        "threshold": 0.9,
+        "precision": 0.955,
+        "recall": 0.632,
+        "f1": 0.76,
+        "flagged": 88,
+        "of": 3117
+      }
+    ]
+  },
+  "caveats": [
+    "Scores are not calibrated probabilities.",
+    "EMSCAD is mostly US/UK English postings (~4% fraud); Indian WhatsApp/UPI-style scams are under-represented.",
+    "Test numbers hold for EMSCAD-like postings only."
+  ],
+  "sha256": {
+    "scam_model.pkl": "e72ea1527d8caacbf453d99804e5aab7ef3e7a544f6b17285e5cc4d2266554be",
+    "vectorizer.pkl": "08a87b9f5141bd82609e43aec915ec111d407b893314254f35492363a8763cf3"
+  }
+}

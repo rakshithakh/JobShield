@@ -1,0 +1,16 @@
+
+backend/.venv/
+.venv/
+venv/
+.env
+.env.*
+!.env.example
+node_modules/
+frontend/dist/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.db
+*.sqlite
+*.sqlite3
+backend/.pytest-basetemp-codex/
