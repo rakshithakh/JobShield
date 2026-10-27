@@ -1,6 +1,0 @@
-streamlit
-pandas
-scikit-learn
-pdfplumber
-python-whois
-requests

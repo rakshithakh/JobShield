@@ -1,5 +1,5 @@
 {
-  "_note": "Carried over from the original Streamlit app. A name match means the NAME resembles a well-known employer; it does not prove the poster is that employer.",
+  "_note": "A name match means the NAME resembles a well-known employer; it does not prove the poster is that employer.",
   "trusted_employers": [
     "infosys",
     "tcs",
