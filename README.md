@@ -4,7 +4,7 @@ A web app that checks a job posting (pasted text, a public web link, or a PDF/.t
 words, contact details and numbers behind each flag. It is an aid to your own verification, **not proof** that a posting or company is
 fraudulent or genuine.
 
-![Result page](docs/screenshots/03-result-high.png)
+![Product demo](docs/screenshots/03-demo.png)
 
 | | |
 |---|---|
@@ -12,7 +12,7 @@ fraudulent or genuine.
 | **Frontend** | React 19 · Vite · Tailwind CSS v4 · React Router |
 | **Quality gates** | 192 backend tests (real PostgreSQL) · 30 frontend tests · 3 real-browser E2E tests · ruff · mypy · ESLint (+jsx-a11y) · migration drift check |
 
-More screenshots (real, captured by the E2E suite): [`docs/screenshots/`](docs/screenshots).
+More UI screenshots: [`docs/screenshots/`](docs/screenshots).
 
 ## What it does
 

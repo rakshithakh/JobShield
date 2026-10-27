@@ -53,6 +53,11 @@ def test_full_user_journey(page):
     expect(page.get_by_text("invented text")).to_be_visible()
     page.screenshot(path=SHOTS / "01-landing.png", full_page=True)
 
+    # README product image uses the self-contained demo, with no stale integration statuses.
+    page.goto(f"{BASE}/demo")
+    expect(page.get_by_role("heading", name="See how a posting is analysed")).to_be_visible()
+    page.screenshot(path=SHOTS / "03-demo.png", full_page=True)
+
     # empty dashboard / history first (no data yet for this browser)
     page.goto(f"{BASE}/dashboard")
     expect(page.get_by_text("Nothing to summarise yet")).to_be_visible()
@@ -70,7 +75,6 @@ def test_full_user_journey(page):
     expect(page.get_by_text("High risk").first).to_be_visible()
     expect(page.get_by_text("Pay Rs 999 registration fee").first).to_be_visible()
     expect(page.get_by_text("Nexgen Solutions: Name resembles generic job-scheme naming (weak signal)")).to_be_visible()
-    page.screenshot(path=SHOTS / "03-result-high.png", full_page=True)
     high_url = page.url
 
     # genuine-looking posting -> low risk, company unknown (not "fraudulent")
@@ -78,7 +82,6 @@ def test_full_user_journey(page):
     expect(page.get_by_text("Low risk").first).to_be_visible()
     expect(page.get_by_text("Unknown: could not be verified")).to_be_visible()
     expect(page.locator("body")).not_to_contain_text("fraudulent company")
-    page.screenshot(path=SHOTS / "04-result-low.png", full_page=True)
 
     # history: persisted in the database, filter + search + detail link
     page.goto(f"{BASE}/history")
