@@ -4,13 +4,28 @@ import json
 import sys
 
 
+def _set_limit(resource, name: str, amount: int) -> None:
+    try:
+        limit = getattr(resource, name)
+        resource.setrlimit(limit, (amount, amount))
+    except (AttributeError, ValueError, OSError):  # unsupported or not permitted by the host
+        return
+
+
 def _limit() -> None:
     try:
         import resource
+<<<<<<< HEAD
         resource.setrlimit(resource.RLIMIT_AS, (384 << 20, 384 << 20))  # bounded on 512 MiB hosts
         resource.setrlimit(resource.RLIMIT_CPU, (25, 25))  # CPU seconds
     except (ImportError, ValueError, OSError):  # non-POSIX or limit not permitted
+=======
+    except ImportError:  # Windows and other platforms without POSIX resource limits
+>>>>>>> a663c20 (Remove unused type ignore comments)
         return
+    # Apply independently so one unsupported limit does not prevent the other from taking effect.
+    _set_limit(resource, "RLIMIT_AS", 384 << 20)  # bounded on 512 MiB hosts
+    _set_limit(resource, "RLIMIT_CPU", 25)  # CPU seconds
 
 
 def main() -> int:
