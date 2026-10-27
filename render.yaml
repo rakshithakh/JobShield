@@ -14,9 +14,8 @@ services:
       - { key: CORS_ORIGINS, sync: false }      # e.g. https://your-app.vercel.app
       - { key: DATABASE_URL, fromDatabase: { name: jobsentinel-db, property: connectionString } }
       - { key: RATE_LIMIT_BACKEND, value: database }
-      - { key: MCA_API_KEY, sync: false }
       - { key: ADZUNA_APP_ID, sync: false }
       - { key: ADZUNA_APP_KEY, sync: false }
 databases:
   - name: jobsentinel-db
-    plan: free
+    plan: free # demo only: free Render Postgres expires after 30 days; use a persistent plan for production data

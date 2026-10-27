@@ -101,7 +101,17 @@ Purge retained input text: `python -m app.cli purge`.
 
 All backend settings are documented in `backend/.env.example` (a test keeps it in sync with the code). Key ones: `DATABASE_URL`, `CORS_ORIGINS`
 (no wildcard allowed in production), `INPUT_TEXT_RETENTION_DAYS` (0 = never store submitted text), `RATE_LIMIT_BACKEND` (`memory` or shared `database`),
-`TRUSTED_PROXY_COUNT`, `GEMINI_API_KEY` (optional, web-grounded informational search only), `ADZUNA_APP_ID/KEY` (listing check + real salary benchmarks; `ADZUNA_SALARY_BENCHMARKS=false` keeps the table), `DISTILBERT_MODEL_DIR`. Frontend: `VITE_API_BASE_URL` (production only).
+`TRUSTED_PROXY_COUNT`, `ADZUNA_APP_ID/KEY` (optional listing check + salary benchmarks; `ADZUNA_SALARY_BENCHMARKS=false` keeps the bundled table), and `DISTILBERT_MODEL_DIR` (optional; weights are not shipped). Online company search is disabled. Frontend: `VITE_API_BASE_URL` (production only).
+
+## Production deployment (Render + Vercel)
+
+The repository includes a Render blueprint at `render.yaml` and Vercel SPA configuration at `frontend/vercel.json`.
+
+**Render backend:** create a Python web service from the repository using root directory `backend`. Use Python 3.12, build command `pip install -r requirements.lock`, start command `alembic upgrade head && uvicorn app.main:create_app --factory --host 0.0.0.0 --port $PORT`, and health check `/api/v1/health`. Set `ENVIRONMENT=production`, `TRUSTED_PROXY_COUNT=1`, `RATE_LIMIT_BACKEND=database`, `DATABASE_URL` to the Render Postgres connection string, and `CORS_ORIGINS` to the exact deployed Vercel origin(s), comma-separated. Do not include `*`. Adzuna keys are optional; leave them unset to disable those lookups. Do not set `DISTILBERT_MODEL_DIR` unless its model weights are available.
+
+**Vercel frontend:** import the repository with root directory `frontend`, framework preset Vite, install command `npm ci`, build command `npm run build`, and output directory `dist`. Set `VITE_API_BASE_URL` to the backend origin, for example `https://jobsentinel-api.onrender.com`, with no trailing slash. Apply it to Production and any Preview environment that should use the API. Redeploy after changing environment variables. The `vercel.json` rewrite sends client-side routes to `index.html`; its CSP currently permits `*.onrender.com`. If using a custom backend domain, add that exact origin to `connect-src` in `frontend/vercel.json`.
+
+The blueprint's free Postgres option is for demos only: Render currently expires free databases after 30 days. Free web services also sleep after 15 idle minutes and can take about a minute to wake; their local filesystem is ephemeral. Use a persistent database plan before storing production user data. These limitations are platform constraints, not application settings.
 
 ## API (`/api/v1`, OpenAPI at `/docs`)
 

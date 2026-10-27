@@ -7,8 +7,8 @@ import sys
 def _limit() -> None:
     try:
         import resource
-        resource.setrlimit(resource.RLIMIT_AS, (1 << 30, 1 << 30))     # 1 GiB address space
-        resource.setrlimit(resource.RLIMIT_CPU, (25, 25))                # CPU seconds
+        resource.setrlimit(resource.RLIMIT_AS, (384 << 20, 384 << 20))  # type: ignore[attr-defined]  # bounded on 512 MiB hosts
+        resource.setrlimit(resource.RLIMIT_CPU, (25, 25))  # type: ignore[attr-defined]  # CPU seconds
     except (ImportError, ValueError, OSError):  # non-POSIX or limit not permitted
         return
 
