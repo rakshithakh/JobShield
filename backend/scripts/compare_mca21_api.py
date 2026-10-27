@@ -8,12 +8,11 @@ Reads MCA_API_KEY from backend/.env (or the process environment) and never print
 from __future__ import annotations
 
 import os
-from pathlib import Path
 import time
+from pathlib import Path
 from urllib.parse import quote, quote_plus
 
 import httpx
-
 
 RESOURCE_ID = "4dbe5667-7b6b-41d7-82af-211562424d9a"
 API_URL = f"https://api.data.gov.in/resource/{RESOURCE_ID}"

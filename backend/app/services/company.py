@@ -18,6 +18,7 @@ import re
 from functools import lru_cache
 from pathlib import Path
 from typing import Protocol
+
 import httpx
 
 from ..config import Settings

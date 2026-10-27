@@ -6,12 +6,11 @@ Run from the backend directory with:
 from __future__ import annotations
 
 import os
-from pathlib import Path
 import sys
+from pathlib import Path
 from urllib.parse import quote, quote_plus
 
 import httpx
-
 
 RESOURCE_ID = "4dbe5667-7b6b-41d7-82af-211562424d9a"
 COMPANY_QUERY = "Infosys Limited"
