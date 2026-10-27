@@ -166,6 +166,42 @@ def test_pdf_parser_runs_in_killable_subprocess(monkeypatch):
     assert e.value.code == "pdf_parse_timeout" and "pdf_worker" in " ".join(calls[0])
 
 
+def test_pdf_worker_limits_apply_independently_when_platform_limit_is_missing(monkeypatch):
+    import builtins
+    from types import SimpleNamespace
+
+    from app.services import pdf_worker
+
+    calls = []
+    fake_resource = SimpleNamespace(RLIMIT_CPU=2, setrlimit=lambda key, value: calls.append((key, value)))
+    real_import = builtins.__import__
+
+    def fake_import(name, *args, **kwargs):
+        if name == "resource":
+            return fake_resource
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", fake_import)
+    pdf_worker._limit()
+    assert calls == [(2, (25, 25))]
+
+
+def test_pdf_worker_limits_are_optional_when_resource_module_is_unavailable(monkeypatch):
+    import builtins
+
+    from app.services import pdf_worker
+
+    real_import = builtins.__import__
+
+    def fake_import(name, *args, **kwargs):
+        if name == "resource":
+            raise ImportError("not available on this platform")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", fake_import)
+    pdf_worker._limit()  # The parent process timeout still bounds the worker on this platform.
+
+
 def test_fetch_concurrency_cap_returns_503(monkeypatch):
     import app.services.url_fetcher as uf
 
