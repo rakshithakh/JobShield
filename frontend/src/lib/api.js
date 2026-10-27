@@ -1,5 +1,7 @@
 // Centralised API client. Components never call fetch directly.
-const BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
+function apiBase() {
+  return (import.meta.env.VITE_API_BASE_URL || "").replace(/\/+$/, "");
+}
 const TOKEN_KEY = "jobsentinel.session";
 
 export class ApiError extends Error {
@@ -31,7 +33,7 @@ export function getSessionToken() {
 }
 
 async function request(path, { method = "GET", json, form, params, signal } = {}) {
-  const url = new URL(BASE + path, window.location.origin);
+  const url = new URL(apiBase() + path, window.location.origin);
   if (params) Object.entries(params).forEach(([k, v]) => v !== undefined && v !== "" && v !== null && url.searchParams.set(k, v));
   const headers = { "X-Session-Token": getSessionToken() };
   let body;

@@ -268,6 +268,16 @@ def test_cors_allows_only_configured_origin(client):
     assert "access-control-allow-origin" not in bad.headers
 
 
+def test_vercel_origin_preflight_allows_analysis_post():
+    origin = "https://job-shield-two-plum.vercel.app"
+    c = make_client(make_settings(cors_origins=origin))
+    response = c.options(URL, headers={"Origin": origin, "Access-Control-Request-Method": "POST",
+                                      "Access-Control-Request-Headers": "content-type,x-session-token"})
+    assert response.status_code == 200
+    assert response.headers.get("access-control-allow-origin") == origin
+    assert "POST" in response.headers.get("access-control-allow-methods", "")
+
+
 def test_production_rejects_wildcard_cors():
     with pytest.raises(RuntimeError):
         make_client(make_settings(environment="production", cors_origins="*"))

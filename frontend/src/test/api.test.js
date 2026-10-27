@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { ApiError, api, getSessionToken } from "../lib/api";
 
 const ok = (body, status = 200) => Promise.resolve(new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } }));
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => { vi.restoreAllMocks(); vi.unstubAllEnvs(); });
 
 describe("api client", () => {
   it("creates a stable URL-safe session token and sends it", async () => {
@@ -20,6 +20,15 @@ describe("api client", () => {
   it("turns structured server errors into ApiError", async () => {
     vi.spyOn(globalThis, "fetch").mockImplementation(() => ok({ error: { code: "url_not_allowed", message: "Nope", request_id: "abc" } }, 422));
     await expect(api.createAnalysis({ job_url: "http://x" })).rejects.toMatchObject({ status: 422, code: "url_not_allowed", message: "Nope", requestId: "abc" });
+  });
+  it("sends analysis to the configured API origin with one API prefix", async () => {
+    vi.stubEnv("VITE_API_BASE_URL", "https://jobshield-0wk5.onrender.com/");
+    const f = vi.spyOn(globalThis, "fetch").mockImplementation(() => ok({ id: "analysis-1" }, 201));
+
+    await api.createAnalysis({ job_text: "A sufficiently long job posting for this API request." });
+
+    expect(String(f.mock.calls[0][0])).toBe("https://jobshield-0wk5.onrender.com/api/v1/analyses");
+    expect(f.mock.calls[0][1].method).toBe("POST");
   });
   it("handles non-JSON error bodies and network failure", async () => {
     vi.spyOn(globalThis, "fetch").mockImplementationOnce(() => Promise.resolve(new Response("<html>bad gateway</html>", { status: 502 })));

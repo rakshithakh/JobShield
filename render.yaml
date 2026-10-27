@@ -11,7 +11,7 @@ services:
       - { key: PYTHON_VERSION, value: "3.12.3" }
       - { key: ENVIRONMENT, value: production }
       - { key: TRUSTED_PROXY_COUNT, value: "1" }
-      - { key: CORS_ORIGINS, sync: false }      # e.g. https://your-app.vercel.app
+      - { key: CORS_ORIGINS, value: "https://job-shield-two-plum.vercel.app" }
       - { key: DATABASE_URL, fromDatabase: { name: jobsentinel-db, property: connectionString } }
       - { key: RATE_LIMIT_BACKEND, value: database }
       - { key: ADZUNA_APP_ID, sync: false }
