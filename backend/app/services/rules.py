@@ -1,6 +1,6 @@
 """Rule-based signal detection (regex).
 
-Carried over from the original app's SCAM_PATTERNS with these changes (RULES_VERSION 15):
+Carried over from the original app's SCAM_PATTERNS with these changes (RULES_VERSION 16):
   * rules-3: patterns pruned using the EMSCAD data (see ml/evaluate.py): the generic "immediately / apply now" urgency
     pattern fired on ~15% of GENUINE postings, "free accommodation" and "multi-level" (buildings) were also common in genuine
     ads. Too-Good-To-Be-True weight reduced 20 -> 10 (no measurable lift). The India-specific fee/UPI/Telegram rules cannot be
@@ -25,12 +25,15 @@ Carried over from the original app's SCAM_PATTERNS with these changes (RULES_VER
   * rules-13: recognize "no exam or interview" and flag explicit OTP/UPI-PIN demands even when no chat app is named.
   * rules-14: recognize "no interview is required" and offer-letter language in fee + interview-skipping claims.
   * rules-15: detect required laptop/equipment purchases and selection that skips assessments.
+  * rules-16: score contextual requests for sensitive identity/financial data once per posting: 35 points for
+    premature identity/bank requests, and 60 for card photos/details or authentication secrets. Post-hire payroll
+    collection and explicit safety advice are excluded; the category remains under the existing 70-point cap.
 """
 import re
 
 from .types import Signal
 
-RULES_VERSION = "rules-15"
+RULES_VERSION = "rules-16"
 
 # category -> (points, severity, explanation, patterns)
 CATEGORIES: dict[str, tuple[int, str, str, list[str]]] = {
@@ -94,22 +97,33 @@ RULE_POINTS_CAP = 70  # same cap as the original app
 _NEGATION = re.compile(r"\b(no|never|not|without|zero|don'?t|do\s+not|doesn'?t|does\s+not|won'?t|will\s+not|free\s+of)\b", re.I)
 _NEGATABLE = {"Registration/Training Fee"}
 _COMPILED = {c: [re.compile(p, re.I) for p in spec[3]] for c, spec in CATEGORIES.items()}
-_SENSITIVE_DOCUMENT = re.compile(
-    r"\b(?:aadhaar|aadhar)(?:\s+card)?\b|\bpan\s+card\b|"
-    r"\bidentity\s+documents?\b|\bpassport\b|\bdriving\s+licen[cs]e\b|"
-    r"\b(?:bank\s+account|bank|account)\s+(?:details?|number|no\.?|information)\b|"
-    r"\b(?:otp|one[- ]time password|upi\s+pin)\b",
+_SENSITIVE_REQUEST = re.compile(
+    r"\b(?:send|share|provide|submit|upload|forward|give|disclose|attach|photograph|"
+    r"must\s+(?:send|share|provide|submit)|(?:required|asked)\s+to\s+(?:send|share|provide|submit))\b",
     re.I,
 )
-_CRITICAL_SECRET = re.compile(r"\b(?:otp|one[- ]time password|upi\s+pin)\b", re.I)
-_SENSITIVE_REQUEST = re.compile(r"\b(?:send|share|provide|submit|upload|forward)\b", re.I)
-_MESSAGING_CHANNEL = re.compile(r"\b(?:whats?app|telegram|chat|messaging|text\s+message)\b", re.I)
+_SENSITIVE_DOCUMENT = re.compile(
+    r"\b(?:aadhaar|aadhar)(?:\s+(?:card|number|no\.?))?\b|\bpan(?:\s+card)?\b|"
+    r"\bidentity\s+documents?\b|\bpassport\b|\bdriving\s+licen[cs]e\b|"
+    r"\b(?:bank\s+account|bank|account)\s+(?:details?|number|no\.?|information)\b",
+    re.I,
+)
+_CRITICAL_SECRET = re.compile(
+    r"\b(?:otp|one[- ]time password|(?:upi\s+)?pin|cvv|cvc|passwords?|passcodes?|"
+    r"debit\s+card\s+(?:photo|photograph|picture|image)|credit\s+card\s+(?:photo|photograph|picture|image)|"
+    r"photo\s+of\s+(?:your\s+)?(?:debit|credit)\s+card|(?:debit|credit)\s+card\s+(?:details?|number))\b",
+    re.I,
+)
 _EARLY_HIRING = re.compile(
-    r"\bno\s+(?:technical\s+)?(?:exam|interview)(?:\s*(?:or|/)\s*(?:technical\s+)?(?:exam|interview))?(?:\s+(?:is\s+)?(?:required|needed|necessary|conducted))?\b|"
-    r"\bwithout\s+(?:(?:a|an)\s+)?(?:technical\s+)?interview\b|"
-    r"\bwithout\s+(?:(?:a|an)\s+)?(?:assessment|exam|test|screening)\b|"
-    r"\bbefore\s+(?:the\s+)?(?:interview|(?:formal\s+)?(?:job\s+)?offer)\b|"
-    r"\b(?:guaranteed|assured)\s+(?:job\s+)?offer\b.{0,40}\bwithin\s+\d+\s*(?:hours?|hrs?|days?)\b",
+    r"\b(?:before|prior\s+to)\s+(?:(?:scheduling|arranging|conducting)\s+)?(?:(?:the|your)\s+)?(?:an?\s+)?"
+    r"(?:interview|assessment|screening|offer|offer\s+letter)\b|"
+    r"\b(?:pre[- ]offer|before\s+(?:you\s+are\s+)?hired|before\s+(?:the\s+)?first\s+interview)\b|"
+    r"\bno\s+(?:technical\s+)?(?:exam|interview)|\bwithout\s+(?:(?:a|an)\s+)?(?:technical\s+)?interview\b",
+    re.I,
+)
+_POST_HIRE_PAYROLL = re.compile(
+    r"\b(?:payroll|salary\s+(?:deposit|payment)|wage\s+payment)\b.{0,100}\b(?:after|once)\s+(?:you\s+are\s+)?(?:hired|employed|onboarded)\b|"
+    r"\b(?:after|once)\s+(?:you\s+are\s+)?(?:hired|employed|onboarded)\b.{0,100}\b(?:payroll|bank\s+account|bank\s+details)\b",
     re.I,
 )
 _NO_INTERVIEW_OR_ASSESSMENT = re.compile(
@@ -154,37 +168,42 @@ def _snippet(text: str, start: int, end: int, pad: int = 35) -> tuple[str, tuple
 
 
 def _sensitive_data_messaging_signal(text: str) -> Signal | None:
-    """Flag OTP/PIN demands outright and other sensitive details routed through chat in early hiring."""
+    """Return one strongest sensitive-data warning, excluding safety advice and routine post-hire payroll."""
     early_hiring = bool(_EARLY_HIRING.search(text))
-    if not early_hiring and not _CRITICAL_SECRET.search(text):
-        return None
-
+    matches: list[tuple[int, int, int, str]] = []
     for sentence in re.finditer(r"[^.!?;\n]+", text):
         part = sentence.group()
-        critical_secret_requested = bool(_CRITICAL_SECRET.search(part))
-        if not _MESSAGING_CHANNEL.search(part) and not critical_secret_requested:
+        request = _SENSITIVE_REQUEST.search(part)
+        if not request or _is_negated(text, sentence.start() + request.start()):
             continue
-        for document in _SENSITIVE_DOCUMENT.finditer(part):
-            for request in _SENSITIVE_REQUEST.finditer(part):
-                if request.start() > document.start() or document.start() - request.end() > 80:
-                    continue
-                start = sentence.start() + request.start()
-                if _is_negated(text, start):
-                    continue
-                end = sentence.start() + document.end()
-                evidence, span = _snippet(text, start, end, pad=100)
-                return Signal(
-                    code="rule:sensitive_data_messaging",
-                    source="rules",
-                    title="Sensitive Data Requested During Hiring",
-                    severity="high",
-                    points=45 if critical_secret_requested else 30,
-                    explanation=("A recruiter should never request an OTP or UPI PIN; identity or financial details requested "
-                                 "through chat during interview-skipping or pre-offer hiring should be verified independently."),
-                    evidence=evidence,
-                    evidence_span=span,
-                )
-    return None
+        critical = _CRITICAL_SECRET.search(part)
+        if critical:
+            matches.append((60, sentence.start() + request.start(), sentence.start() + critical.end(), "critical"))
+            continue
+        # Card-number/details requests are unsafe regardless of hiring stage. Ordinary identity and
+        # bank details are scored only when requested before an interview or offer.
+        sensitive = _SENSITIVE_DOCUMENT.search(part)
+        if not sensitive:
+            continue
+        card_data = re.search(r"\b(?:debit|credit)\s+card\s+(?:details?|number)\b", part, re.I)
+        if card_data:
+            matches.append((60, sentence.start() + request.start(), sentence.start() + card_data.end(), "critical"))
+        elif early_hiring and not _POST_HIRE_PAYROLL.search(text):
+            matches.append((35, sentence.start() + request.start(), sentence.start() + sensitive.end(), "early"))
+    if not matches:
+        return None
+    points, start, end, kind = max(matches, key=lambda item: item[0])
+    evidence, span = _snippet(text, start, end, pad=100)
+    detail = (
+        "Recruiters should never request an OTP, PIN, CVV, password, or photo/details of a payment card."
+        if kind == "critical" else
+        "Requests for identity or bank details before an interview or offer are premature; verify the employer independently."
+    )
+    return Signal(
+        code="rule:sensitive_data_request", source="rules",
+        title="Sensitive Personal or Financial Information Requested", severity="high", points=points,
+        explanation=detail, evidence=evidence, evidence_span=span,
+    )
 
 
 def _fee_no_interview_offer_signal(text: str, signals: list[Signal]) -> Signal | None:

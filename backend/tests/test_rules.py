@@ -91,19 +91,19 @@ def test_requested_otp_over_chat_with_offer_cancellation_deadline_is_high_risk()
             "PAN card, bank account number and OTP through WhatsApp. "
             "Complete verification within 30 minutes or your offer will be cancelled.")
     sigs = detect_rule_signals(text)
-    sensitive = next(s for s in sigs if s.code == "rule:sensitive_data_messaging")
+    sensitive = next(s for s in sigs if s.code == "rule:sensitive_data_request")
     urgency = next(s for s in sigs if s.code == "rule:urgency_tactics")
-    assert sensitive.points == 45
+    assert sensitive.points == 60
     assert "OTP" in sensitive.evidence and "WhatsApp" in sensitive.evidence
     assert urgency.points == 20
-    assert capped_rule_points(sigs) == 65
+    assert capped_rule_points(sigs) == 70
 
 
 def test_chat_otp_warning_and_non_otp_post_offer_request_do_not_get_critical_signal():
     safety_advice = "Never share your OTP through WhatsApp. Verify the employer independently."
     post_offer = "After the signed offer, send bank account details through WhatsApp to HR."
     for text in (safety_advice, post_offer):
-        assert "rule:sensitive_data_messaging" not in {s.code for s in detect_rule_signals(text)}
+        assert "rule:sensitive_data_request" not in {s.code for s in detect_rule_signals(text)}
 
 
 def test_offer_cancellation_deadline_adds_urgency_only_with_consequence():
@@ -131,10 +131,10 @@ def test_sensitive_documents_requested_by_messaging_during_no_interview_hiring()
     text = ("Remote Software Developer. No technical interview required. "
             "Guaranteed job offer within 24 hours. Candidates must send their Aadhaar card, "
             "PAN card and bank account details over WhatsApp to complete immediate onboarding.")
-    sig = next(s for s in detect_rule_signals(text) if s.code == "rule:sensitive_data_messaging")
-    assert sig.points == 30
+    sig = next(s for s in detect_rule_signals(text) if s.code == "rule:sensitive_data_request")
+    assert sig.points == 35
     assert sig.evidence and "Aadhaar card" in sig.evidence and "WhatsApp" in sig.evidence
-    assert sig.evidence[slice(*sig.evidence_span)] == "send their Aadhaar card"
+    assert sig.evidence[slice(*sig.evidence_span)] == "must send their Aadhaar card"
 
 
 def test_sensitive_document_rule_ignores_post_offer_secure_portal_and_safety_advice():
@@ -143,7 +143,38 @@ def test_sensitive_document_rule_ignores_post_offer_secure_portal_and_safety_adv
     safety_advice = ("Never send your Aadhaar card, PAN card or bank details over WhatsApp. "
                      "A legitimate employer will verify you after an interview and formal offer.")
     for text in (legitimate, safety_advice):
-        assert "rule:sensitive_data_messaging" not in {s.code for s in detect_rule_signals(text)}
+        assert "rule:sensitive_data_request" not in {s.code for s in detect_rule_signals(text)}
+
+
+def test_sensitive_data_request_is_one_signal_and_card_photo_gets_strong_weight():
+    text = ("Before scheduling an interview, send your Aadhaar number, PAN card, bank account details, "
+            "and a photo of your debit card to our recruitment team.")
+    sigs = detect_rule_signals(text)
+    sensitive = [s for s in sigs if s.code == "rule:sensitive_data_request"]
+    assert len(sensitive) == 1 and sensitive[0].points == 60
+    assert "debit card" in sensitive[0].evidence.lower()
+    assert sensitive[0].evidence[slice(*sensitive[0].evidence_span)].lower().startswith("send")
+
+
+def test_authentication_secret_requests_are_strongly_flagged():
+    for secret in ("OTP", "PIN", "CVV"):
+        sig = next(s for s in detect_rule_signals(f"Send your {secret} to the recruiter to verify your application.")
+                   if s.code == "rule:sensitive_data_request")
+        assert sig.points == 60 and sig.severity == "high"
+
+
+def test_bank_details_before_interview_are_flagged_but_post_hire_payroll_is_not():
+    early = detect_rule_signals("Before your interview, send your bank account details to recruitment.")
+    assert next(s for s in early if s.code == "rule:sensitive_data_request").points == 35
+    payroll = "Bank details are collected after hiring for payroll and salary deposits."
+    assert "rule:sensitive_data_request" not in {s.code for s in detect_rule_signals(payroll)}
+
+
+def test_safety_warning_and_clean_software_job_are_not_flagged():
+    warning = "Never share your PIN or OTP with anyone during recruitment."
+    clean = "We are hiring a software engineer with Python experience to build web services."
+    for text in (warning, clean):
+        assert "rule:sensitive_data_request" not in {s.code for s in detect_rule_signals(text)}
 
 
 def test_clean_text_has_no_signals():

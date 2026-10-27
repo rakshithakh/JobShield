@@ -9,7 +9,7 @@
   "test_fraud": 139,
   "base_rate": 0.0436,
   "scoring_version": "scoring-4",
-  "rules_version": "rules-15",
+  "rules_version": "rules-16",
   "levels": {
     "medium_or_high (>=35)": {
       "precision": 0.984,

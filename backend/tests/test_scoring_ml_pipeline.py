@@ -64,8 +64,8 @@ def test_sensitive_data_messaging_rule_includes_specific_safety_advice():
     text = ("No technical interview required. Guaranteed job offer within 24 hours. "
             "Send Aadhaar card, PAN card and bank account details over WhatsApp for immediate onboarding.")
     r = run_pipeline(AnalysisInput(text), make_detector([FakePredictor(0.1)]))
-    assert "rule:sensitive_data_messaging" in {s.code for s in r.signals}
-    assert any("Do not send Aadhaar, PAN, bank details" in tip for tip in r.recommendations)
+    assert "rule:sensitive_data_request" in {s.code for s in r.signals}
+    assert any("Do not send card photos or details" in tip for tip in r.recommendations)
 
 
 def test_otp_request_and_cancellation_ultimatum_reach_high_risk():
@@ -74,7 +74,7 @@ def test_otp_request_and_cancellation_ultimatum_reach_high_risk():
             "Complete verification within 30 minutes or your offer will be cancelled.")
     r = run_pipeline(AnalysisInput(text), make_detector([FakePredictor(0.35)]))
     codes = {s.code for s in r.signals}
-    assert "rule:sensitive_data_messaging" in codes
+    assert "rule:sensitive_data_request" in codes
     assert "rule:urgency_tactics" in codes
     assert r.risk_level == "high" and r.risk_score >= 60
 
@@ -85,6 +85,18 @@ def test_upi_deposit_for_confirmed_no_interview_placement_reaches_high_risk():
     r = run_pipeline(AnalysisInput(text), make_detector([FakePredictor(0.1)]))
     assert "rule:fee_no_interview_offer" in {s.code for s in r.signals}
     assert r.risk_level == "high" and r.risk_score >= 60
+
+
+def test_production_sensitive_information_example_has_explained_nonzero_score():
+    text = ("We are recruiting fresh graduates for a remote customer support role. Before scheduling an interview, "
+            "send your Aadhaar number, PAN card, bank account details, and a photo of your debit card "
+            "to our recruitment team.")
+    r = run_pipeline(AnalysisInput(text), make_detector([FakePredictor(0.05)]))
+    signal = next(s for s in r.signals if s.code == "rule:sensitive_data_request")
+    assert r.risk_score >= 60 and r.score_breakdown["rules"] == 60
+    assert signal.title in {s.title for s in r.signals if s.points > 0}
+    assert signal.explanation and "debit card" in signal.evidence.lower()
+    assert r.versions["rules"] == "rules-16"
 
 
 def test_gmail_contact_mentioned_without_address_adds_only_weak_points():

@@ -39,8 +39,8 @@ class Detector:
 def _recommendations(level: str, signals: list[Signal], company_status: str) -> list[str]:
     codes = {s.code for s in signals}
     recs = []
-    if "rule:sensitive_data_messaging" in codes:
-        recs.append("Do not send Aadhaar, PAN, bank details, OTPs or UPI PINs over chat during hiring; verify the employer and offer independently first.")
+    if "rule:sensitive_data_request" in codes:
+        recs.append("Do not send card photos or details, OTPs, PINs, CVVs, passwords, or premature identity/bank details to a recruiter; verify the employer independently.")
     if "rule:registration_training_fee" in codes:
         recs.append("Never pay a fee, deposit or 'kit' charge to get a job. Genuine employers do not ask for one.")
     if "contact:personal_email" in codes:
