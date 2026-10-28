@@ -96,7 +96,7 @@ def test_production_sensitive_information_example_has_explained_nonzero_score():
     assert r.risk_score >= 60 and r.score_breakdown["rules"] == 60
     assert signal.title in {s.title for s in r.signals if s.points > 0}
     assert signal.explanation and "debit card" in signal.evidence.lower()
-    assert r.versions["rules"] == "rules-17"
+    assert r.versions["rules"] == "rules-18"
 
 
 def test_guaranteed_paid_training_placement_scam_is_high_risk_with_explanations():
@@ -111,7 +111,27 @@ def test_guaranteed_paid_training_placement_scam_is_high_risk_with_explanations(
     assert result.risk_score == 70 and result.risk_level == "high"
     assert result.score_breakdown["rules"] == 70
     assert {"rule:registration_training_fee", "rule:unrealistic_promises", "rule:fee_no_interview_offer"} <= codes
-    assert result.versions["rules"] == "rules-17"
+    assert result.versions["rules"] == "rules-18"
+
+
+def test_government_appointment_fee_to_personal_upi_without_checks_is_high_risk():
+    text = (
+        "Government IT Officer Recruitment 2026. Direct government appointment for 2,000 IT Officer vacancies. "
+        "Salary ₹85,000 per month with permanent employment and pension benefits. "
+        "No examination, qualification verification, or interview is required. "
+        "Pay a processing fee of ₹4,500 through personal UPI to receive your government appointment letter within 24 hours. "
+        "Apply today. This special recruitment is not advertised on any official government website."
+    )
+    result = run_pipeline(AnalysisInput(text), make_detector([FakePredictor(0.05)]))
+    codes = {signal.code for signal in result.signals}
+    assert result.risk_score >= 60 and result.risk_level == "high"
+    assert result.score_breakdown["rules"] == 70
+    assert {
+        "rule:registration_training_fee",
+        "rule:suspicious_work_pattern",
+        "rule:fee_no_interview_offer",
+    } <= codes
+    assert result.versions["rules"] == "rules-18"
 
 
 def test_gmail_contact_mentioned_without_address_adds_only_weak_points():

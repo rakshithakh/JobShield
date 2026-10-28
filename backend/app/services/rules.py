@@ -1,6 +1,6 @@
 """Rule-based signal detection (regex).
 
-Carried over from the original app's SCAM_PATTERNS with these changes (RULES_VERSION 17):
+Carried over from the original app's SCAM_PATTERNS with these changes (RULES_VERSION 18):
   * rules-3: patterns pruned using the EMSCAD data (see ml/evaluate.py): the generic "immediately / apply now" urgency
     pattern fired on ~15% of GENUINE postings, "free accommodation" and "multi-level" (buildings) were also common in genuine
     ads. Too-Good-To-Be-True weight reduced 20 -> 10 (no measurable lift). The India-specific fee/UPI/Telegram rules cannot be
@@ -30,12 +30,14 @@ Carried over from the original app's SCAM_PATTERNS with these changes (RULES_VER
     collection and explicit safety advice are excluded; the category remains under the existing 70-point cap.
   * rules-17: detect priced training programs promoted with guaranteed jobs/placements and recognize combined
     no-assessment/interview wording in fee corroboration.
+  * rules-18: recognize personal-UPI payment demands, examination/qualification-verification bypasses, and
+    appointment-letter claims in the existing upfront-fee corroboration.
 """
 import re
 
 from .types import Signal
 
-RULES_VERSION = "rules-17"
+RULES_VERSION = "rules-18"
 
 # category -> (points, severity, explanation, patterns)
 CATEGORIES: dict[str, tuple[int, str, str, list[str]]] = {
@@ -74,7 +76,7 @@ CATEGORIES: dict[str, tuple[int, str, str, list[str]]] = {
         r"(work\s+any\s*time|anytime\s+work)",
         r"(daily\s+payment|payment\s+daily|pay\s+daily)",
         r"(upi|digital\s+wallet|paytm)\s*(payment|transfer)",
-        r"\b(?:pay|send|deposit|transfer)\b.{0,60}\b(?:via|by|using|through)\s+upi\b",
+        r"\b(?:pay|send|deposit|transfer)\b.{0,60}\b(?:via|by|using|through)\s+(?:a\s+)?(?:personal\s+)?upi\b",
         r"(per\s+entry|per\s+form|per\s+page)\s*(rs|Ã¢â€šÂ¹|\d)",
         r"(rs|Ã¢â€šÂ¹)\s*\d+\s*per\s*(entry|form|page)",
         r"\b(contact|message|text|dm|reach)\s+(us\s+)?(only\s+)?(on|via|through)\s+(telegram|whatsapp)\b",
@@ -131,13 +133,14 @@ _POST_HIRE_PAYROLL = re.compile(
     re.I,
 )
 _NO_INTERVIEW_OR_ASSESSMENT = re.compile(
-    r"\bno\s+(?:technical\s+)?(?:exam|interview|assessment|test|screening)"
-    r"(?:\s*(?:or|/)\s*(?:technical\s+)?(?:exam|interview|assessment|test|screening))?"
+    r"\bno\s+(?:technical\s+)?(?:exam(?:ination)?|interview|assessment|test|screening|qualification\s+verification)"
+    r"(?:\s*,?\s*(?:(?:and|or)\s+)?(?:technical\s+)?(?:exam(?:ination)?|interview|assessment|test|screening|qualification\s+verification))*"
     r"(?:\s+(?:is\s+)?(?:required|needed|necessary|conducted))?\b|"
     r"\bwithout\s+(?:(?:a|an)\s+)?(?:technical\s+)?(?:interview|assessment|exam|test|screening)\b",
     re.I,
 )
 _OFFER_OR_SELECTION = re.compile(
+    r"\b(?:government\s+)?appointment\s+letter\b|"
     r"\b(?:congratulations|immediate\s+selection|direct\s+selection|selected\s+for|you\s+are\s+selected|"
     r"guaranteed\s+(?:job\s+)?offer|confirm\s+your\s+offer)\b|"
     r"\bbefore\s+receiving\s+(?:the\s+)?(?:formal\s+)?offer\s+letter\b|"
