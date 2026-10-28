@@ -9,7 +9,7 @@
   "test_fraud": 139,
   "base_rate": 0.0436,
   "scoring_version": "scoring-4",
-  "rules_version": "rules-16",
+  "rules_version": "rules-17",
   "levels": {
     "medium_or_high (>=35)": {
       "precision": 0.984,
@@ -123,5 +123,6 @@
     "No company/contact/salary evidence in most EMSCAD rows, so only text stages are exercised.",
     "Real-world precision depends on the prevalence of scams among postings users submit, which is not 4%.",
     "Model training-data hash differs from this evaluation dataset; independence from training data is not verified."
-  ]
+  ],
+  "rules_evaluation_note": "The held-out EMSCAD metrics predate the rules-17 India-specific paid-training/guaranteed-placement rule and do not validate that rule."
 }

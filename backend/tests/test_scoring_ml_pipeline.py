@@ -96,7 +96,22 @@ def test_production_sensitive_information_example_has_explained_nonzero_score():
     assert r.risk_score >= 60 and r.score_breakdown["rules"] == 60
     assert signal.title in {s.title for s in r.signals if s.points > 0}
     assert signal.explanation and "debit card" in signal.evidence.lower()
-    assert r.versions["rules"] == "rules-16"
+    assert r.versions["rules"] == "rules-17"
+
+
+def test_guaranteed_paid_training_placement_scam_is_high_risk_with_explanations():
+    text = (
+        "Join our three-day software engineering training program for ₹12,999. "
+        "Every participant is guaranteed a ₹12 LPA job at a multinational company immediately after completing the course. "
+        "No assessment or interview required. Pay the full amount today to receive your placement confirmation letter. "
+        "Fees are non-refundable, regardless of placement outcome."
+    )
+    result = run_pipeline(AnalysisInput(text), make_detector([FakePredictor(0.05)]))
+    codes = {signal.code for signal in result.signals}
+    assert result.risk_score == 70 and result.risk_level == "high"
+    assert result.score_breakdown["rules"] == 70
+    assert {"rule:registration_training_fee", "rule:unrealistic_promises", "rule:fee_no_interview_offer"} <= codes
+    assert result.versions["rules"] == "rules-17"
 
 
 def test_gmail_contact_mentioned_without_address_adds_only_weak_points():

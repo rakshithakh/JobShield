@@ -1,6 +1,6 @@
 """Rule-based signal detection (regex).
 
-Carried over from the original app's SCAM_PATTERNS with these changes (RULES_VERSION 16):
+Carried over from the original app's SCAM_PATTERNS with these changes (RULES_VERSION 17):
   * rules-3: patterns pruned using the EMSCAD data (see ml/evaluate.py): the generic "immediately / apply now" urgency
     pattern fired on ~15% of GENUINE postings, "free accommodation" and "multi-level" (buildings) were also common in genuine
     ads. Too-Good-To-Be-True weight reduced 20 -> 10 (no measurable lift). The India-specific fee/UPI/Telegram rules cannot be
@@ -28,12 +28,14 @@ Carried over from the original app's SCAM_PATTERNS with these changes (RULES_VER
   * rules-16: score contextual requests for sensitive identity/financial data once per posting: 35 points for
     premature identity/bank requests, and 60 for card photos/details or authentication secrets. Post-hire payroll
     collection and explicit safety advice are excluded; the category remains under the existing 70-point cap.
+  * rules-17: detect priced training programs promoted with guaranteed jobs/placements and recognize combined
+    no-assessment/interview wording in fee corroboration.
 """
 import re
 
 from .types import Signal
 
-RULES_VERSION = "rules-16"
+RULES_VERSION = "rules-17"
 
 # category -> (points, severity, explanation, patterns)
 CATEGORIES: dict[str, tuple[int, str, str, list[str]]] = {
@@ -43,6 +45,7 @@ CATEGORIES: dict[str, tuple[int, str, str, list[str]]] = {
         r"pay\s*(rs\.?|inr|Ã¢â€šÂ¹)\.?\s*\d[\d,]*",
         r"(rs\.?|Ã¢â€šÂ¹)\s*\d+\s*(registration|fee|joining|deposit|charge)",
         r"pay\s+\d+\s*(before|to\s*get|for\s*joining)",
+        r"\btraining\s+(?:program|course)\b.{0,60}\bfor\s+(?:\u20b9|inr|rs\.?)\s*\d[\d,]*\b(?=[\s\S]{0,250}\bguarantee\w*\b.{0,60}\b(?:job|placement|employment)\b)",
         r"(fee|deposit|charge)\s*(of|is|:)?\s*(rs\.?|Ã¢â€šÂ¹)\s*\d+",
         r"\b(send|transfer|deposit)\s+(rs\.?|inr|Ã¢â€šÂ¹)?\s*\d+\b.{0,40}\b(kit|slot|confirm|upi|register|activation)",
         r"\b(?:purchase|buy|pay\s+for)\b.{0,80}\b(?:mandatory\s+)?(?:laptop|computer|equipment|device)\s+(?:package|kit)\b",
@@ -57,10 +60,11 @@ CATEGORIES: dict[str, tuple[int, str, str, list[str]]] = {
         r"\bwithin\s+\d+\s*(?:minutes?|mins?)\b.{0,50}\b(?:or|otherwise)\b.{0,40}\b(?:offer|job|position)\b.{0,30}\b(?:cancelled|canceled|withdrawn?)\b",
     ]),
     "Unrealistic Promises": (20, "medium",
-        "Guaranteed income or no requirements at all is atypical for genuine roles.", [
+        "Guaranteed jobs, placements, income, or no requirements at all are atypical for genuine roles.", [
         r"(no\s+experience\s+(needed|required|necessary))",
         r"(anyone\s+can\s+apply|no\s+qualification\s+required)",
         r"(guaranteed\s+(income|salary|earning|payment))",
+        r"\bguaranteed\b.{0,40}\b(?:job|placement|employment)\b",
         r"(unlimited\s+(earning|income|money|opportunity))",
         r"(be\s+your\s+own\s+boss)",
     ]),
@@ -127,8 +131,9 @@ _POST_HIRE_PAYROLL = re.compile(
     re.I,
 )
 _NO_INTERVIEW_OR_ASSESSMENT = re.compile(
-    r"\bno\s+(?:technical\s+)?(?:exam|interview)(?:\s*(?:or|/)\s*(?:technical\s+)?(?:exam|interview))?(?:\s+(?:is\s+)?(?:required|needed|necessary|conducted))?\b|"
-    r"\bno\s+(?:assessment|test|screening)(?:\s+(?:is\s+)?(?:required|needed|necessary|conducted))?\b|"
+    r"\bno\s+(?:technical\s+)?(?:exam|interview|assessment|test|screening)"
+    r"(?:\s*(?:or|/)\s*(?:technical\s+)?(?:exam|interview|assessment|test|screening))?"
+    r"(?:\s+(?:is\s+)?(?:required|needed|necessary|conducted))?\b|"
     r"\bwithout\s+(?:(?:a|an)\s+)?(?:technical\s+)?(?:interview|assessment|exam|test|screening)\b",
     re.I,
 )
@@ -136,6 +141,7 @@ _OFFER_OR_SELECTION = re.compile(
     r"\b(?:congratulations|immediate\s+selection|direct\s+selection|selected\s+for|you\s+are\s+selected|"
     r"guaranteed\s+(?:job\s+)?offer|confirm\s+your\s+offer)\b|"
     r"\bbefore\s+receiving\s+(?:the\s+)?(?:formal\s+)?offer\s+letter\b|"
+    r"\bguaranteed\b.{0,60}\b(?:job|placement|employment)\b|"
     r"\bguarantee(?:s|d)?\s+(?:(?:you|your)\s+)?(?:a\s+)?(?:job|position|employment)\b|"
     r"\bplacement\s+(?:is\s+)?confirmed\b|"
     r"\bguarante(?:es|ed)\s+(?:you\s+)?(?:employment|a\s+job|a\s+position|a\s+placement)\b",

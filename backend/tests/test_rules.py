@@ -127,6 +127,30 @@ def test_guaranteed_placement_alone_does_not_add_fee_offer_bonus():
     assert "rule:fee_no_interview_offer" not in {s.code for s in detect_rule_signals(text)}
 
 
+def test_priced_training_with_guaranteed_placement_and_no_checks_is_flagged_once_per_signal():
+    text = (
+        "Join our three-day software engineering training program for ₹12,999. "
+        "Every participant is guaranteed a ₹12 LPA job at a multinational company immediately after completing the course. "
+        "No assessment or interview required. Pay the full amount today to receive your placement confirmation letter. "
+        "Fees are non-refundable, regardless of placement outcome."
+    )
+    sigs = detect_rule_signals(text)
+    codes = {signal.code for signal in sigs}
+    assert "rule:registration_training_fee" in codes
+    assert "rule:unrealistic_promises" in codes
+    assert "rule:fee_no_interview_offer" in codes
+    assert sum(signal.code == "rule:registration_training_fee" for signal in sigs) == 1
+    assert capped_rule_points(sigs) == 70
+    fee = next(signal for signal in sigs if signal.code == "rule:registration_training_fee")
+    assert "training program" in fee.evidence.lower() and "12,999" in fee.evidence
+
+
+def test_paid_training_without_a_job_placement_guarantee_is_not_flagged_as_a_hiring_fee():
+    text = "Join our three-day software engineering training program for ₹12,999. Includes practical workshops."
+    assert "Registration/Training Fee" not in titles(text)
+    assert "Unrealistic Promises" not in titles(text)
+
+
 def test_sensitive_documents_requested_by_messaging_during_no_interview_hiring():
     text = ("Remote Software Developer. No technical interview required. "
             "Guaranteed job offer within 24 hours. Candidates must send their Aadhaar card, "
